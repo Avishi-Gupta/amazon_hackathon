@@ -60,6 +60,24 @@ export function nameKey(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * Tidies a product name before storing it. Receipt scans arrive shouted and padded with pack sizes
+ * ("MEIJI FRH MILK 830M"), which would otherwise sit in the inventory as a separate product from
+ * the same thing added by voice.
+ */
+export function normalizeProductName(name: string): string {
+  const cleaned = name
+    .trim()
+    .replace(/\b\d+(\.\d+)?\s?(ml|l|g|kg|mg|oz|lb|ct|pk|pcs?|s)\b/gi, "") // 500ml, 830m, 30s, 2kg
+    .replace(/\bx\s?\d+\b/gi, "") // x2
+    .replace(/[^\p{L}\p{N}\s'&-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const result = cleaned || name.trim();
+  // Receipt shorthand is upper case; everything the customer says keeps its own casing.
+  return result === result.toUpperCase() ? result.toLowerCase() : result;
+}
+
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export class InventoryStore {
@@ -127,7 +145,8 @@ export class InventoryStore {
     const cleared: string[] = [];
     this.transaction(() => {
       for (const raw of inputs) {
-        const input = newItemSchema.parse(raw);
+        const parsed = newItemSchema.parse(raw);
+        const input = { ...parsed, name: normalizeProductName(parsed.name) };
         const guess = classify(input.name);
         const category = input.category ?? guess.category;
         const location = input.location ?? (input.category ? defaultLocation(input.category) : guess.location);

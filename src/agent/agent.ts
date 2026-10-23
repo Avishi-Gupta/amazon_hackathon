@@ -31,7 +31,11 @@ If a request has nothing to do with their home supplies, answer briefly without 
 
 const PHOTO_PROMPT = `This photo is either a shopping receipt or groceries the customer has just brought home.
 
-Identify every food or household product you can see or read, ignoring prices, totals, store names, loyalty numbers and anything that is not a product. Expand abbreviated receipt names into ordinary English product names: "ORG BAN" is "bananas", "SKIM MLK 1L" is "milk". Read a printed use-by or best-before date when one is clearly legible, and otherwise leave the expiry out so HomeStock can estimate it.
+Identify every food or household product you can see or read, ignoring prices, totals, store names, loyalty numbers and anything that is not a product.
+
+Name each product the way a person would say it out loud at home, never the way the receipt prints it. Expand every abbreviation, drop the brand, and drop pack sizes, volumes and weights: "ORG BAN" is "bananas", "SKIM MLK 1L" is "milk", "MEIJI FRH MILK 830M" is "milk", "PCH OOLG TEA 500ML" is "peach oolong tea", "DISHWASH TABS 30S" is "dishwasher tablets". Keep a brand only when it is the only thing that tells two products apart. Never put the same product in the list twice — if two lines are the same thing, combine them into one entry and add up the quantity.
+
+Read a printed use-by or best-before date when one is clearly legible, and otherwise leave the expiry out so HomeStock can estimate it.
 
 Leave the category and storage location out of every item: HomeStock classifies products itself, and its shelf-life rules are more accurate than a guess from the photo.
 

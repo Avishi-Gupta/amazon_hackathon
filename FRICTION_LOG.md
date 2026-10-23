@@ -1,70 +1,111 @@
 # Friction Log
 
-Running log of developer friction hit while building HomeStock for the Build, Ship, Shape hackathon.
-Each entry: task, steps, expected vs. actual, severity, workaround, suggestion.
+Problems I hit while building HomeStock for the Build, Ship, Shape hackathon, written down as they happened. Each entry says what I was trying to do, what I expected, what actually happened, how bad it was, what I did instead, and what would have helped.
 
-Severity: **Blocker** · **High** · **Medium** · **Low**
+Severity scale: Blocker, High, Medium, Low.
 
----
+## F-001. The Alexa AI CLI cannot be installed from the public npm registry
 
-## F-001 — Alexa AI CLI not installable from the public npm registry
+Date: 16 September 2026
 
-- **Date:** 2026-09-16
-- **Tool:** Alexa+ MCP Toolkit — `@alexa-ai/cli`
-- **Task:** Install the Alexa AI CLI to scaffold and deploy an MCP add-on.
-- **Steps:** Followed *Set Up Your Development Environment*, which gives `npm install -g @alexa-ai/cli` (Node 24+). Ran `npm view @alexa-ai/cli` against registry.npmjs.org.
-- **Expected:** Package resolves and installs.
-- **Actual:** `404 Not Found — '@alexa-ai/cli@*' could not be found or you do not have permission to access it`. Same for several guessed names of the local inspector (`addon-local-inspector`).
-- **Severity:** High (blocks `alexa-ai new mcp` / `deploy`)
-- **Root cause (found later the same day):** Further down, the setup page says to "authenticate npm against the Alexa AI private CodeArtifact registry" using the AWS account "provided to the Alexa Solutions Architect". The CLI is effectively partner-gated, but the gating is only visible after the install command has already failed.
-- **Workaround:** Target the MCP spec directly (2025-11-25, Streamable HTTP, MCP Apps) so the server runs in any compliant host, and demo through a simulated Alexa+ client.
-- **Suggestion:** Put the CodeArtifact/Solutions Architect prerequisite *before* the install command, give individual developers a self-serve request path, and publish the local inspector publicly so non-partners can at least validate servers against Alexa+ rules.
+Tool: Alexa+ MCP Toolkit, the alexa-ai CLI
 
-## F-002 — Contradictory access signals for the MCP Toolkit
+What I was doing: installing the CLI so I could scaffold and deploy an MCP add-on.
 
-- **Date:** 2026-09-16
-- **Tool:** Alexa+ MCP Toolkit docs
-- **Task:** Determine whether an individual, non-US developer can use the toolkit.
-- **Steps:** Read the Alexa+ for Builders landing page, MCP Toolkit Overview, and dev-environment setup page.
-- **Expected:** One clear eligibility statement.
-- **Actual:** Landing page says "currently available to select partners working directly with our team"; Overview says "available in the United States"; setup page only requires a free developer account but mentions giving credentials "to the Alexa Solutions Architect".
-- **Severity:** Medium
-- **Workaround:** Build a standards-compliant MCP server that also runs in any MCP Apps host, plus a simulated Alexa+ client, so the project isn't blocked on access.
-- **Suggestion:** Add an eligibility box (who, which countries, how to request access) at the top of the Overview and QuickStart.
+Steps: I followed the Set Up Your Development Environment page, which tells you to run npm install -g @alexa-ai/cli on Node 24 or later. When that failed I checked the package directly against registry.npmjs.org.
 
-## F-004 — Anthropic models on Bedrock unusable on a new account, with no actionable path
+Expected: the package installs.
 
-- **Date:** 2026-09-18 → 2026-10-12 (unresolved for 3+ weeks)
-- **Tool:** Amazon Bedrock — model access for Anthropic models
-- **Task:** Invoke Claude from a new personal AWS account for the hackathon's AWS Builder mini challenge.
-- **Steps:** Created an IAM user with `AmazonBedrockLimitedAccess`; the console's *Model access* page is retired and states serverless models "are now automatically enabled across all AWS commercial regions when first invoked"; invoked from the Playground and via `bedrock-runtime converse`; submitted the Anthropic use-case form; retried over several days in `ap-southeast-1` and `us-west-2`.
-- **Expected:** First invocation enables the model, as the retirement notice describes.
-- **Actual:** Every call returns `AccessDeniedException: anthropic.claude-opus-5 is not available for this account … contact AWS Sales`. Diagnostics show the account is fine and only the agreement is missing:
-  `get-foundation-model-availability` → `agreementAvailability: NOT_AVAILABLE`, `authorizationStatus: AUTHORIZED`, `entitlementAvailability: AVAILABLE`, `regionAvailability: AVAILABLE`, while `get-use-case-for-model-access` confirms the form was accepted. `list-foundation-model-agreement-offers` returns an offer that nothing in the console ever presents. Amazon Nova models on the same account show `agreementAvailability: AVAILABLE` and invoke fine, so this is specific to the Anthropic listing.
-- **Severity:** Blocker (for the AWS Builder challenge as originally planned)
-- **Workaround:** Switched the agent from Anthropic's Bedrock SDK to the AWS Converse API and run Amazon Nova Pro, which works on the same account with the same credentials.
-- **Suggestion:** Three fixes. (1) Make the error name the real cause — "no Marketplace agreement for this model; subscribe here" — instead of "contact AWS Sales", which reads as "your account is too small". (2) Since *Model access* is retired, give the console a visible way to accept a pending `list-foundation-model-agreement-offers` offer; today the offer is reachable only through the CLI. (3) State on the retirement page that the auto-enable path does not cover Anthropic models for new accounts, and say what does.
+What happened: a 404 saying the package could not be found or I do not have permission to access it. I tried several likely names for the local inspector too, and none of them exist publicly either.
 
-## F-005 — Nova returns an empty turn when a tool result mixes text with a large JSON block
+Severity: High. Without the CLI there is no way to deploy an add-on.
 
-- **Date:** 2026-10-12
-- **Tool:** Amazon Bedrock Converse API — Amazon Nova Pro (`apac.amazon.nova-pro-v1:0`)
-- **Task:** Return an MCP tool result to the model as both a spoken summary and its structured payload, using `toolResult.content: [{ text }, { json }]` — the shape the Converse API documents.
-- **Steps:** Agent loop calls `get_expiring`, posts the result back with a text block plus a `json` block holding the tool's `structuredContent` (an object with a 16-item array), then re-invokes Converse.
-- **Expected:** A spoken summary referring to the structured data.
-- **Actual:** `stopReason: "end_turn"` with `content: []` — an empty assistant turn, no error, no warning. The same conversation with a short text-only tool result answers correctly, so the trigger is the mixed text + `json` content block (or its size), not the conversation itself. An empty success response is hard to attribute: it looks like a prompt problem, not an API one.
-- **Severity:** High (silent, and the natural reading of the docs leads straight into it)
-- **Workaround:** Send one text block per tool result with the JSON serialised into it, capped at 6,000 characters.
-- **Suggestion:** Either reject the request with a validation error naming the offending block, or document the size and shape limits for `toolResult` `json` blocks. Returning `end_turn` with no content and no diagnostic is the worst of the three options.
+Root cause, which I found later the same day: further down the same setup page there is a step about authenticating npm against a private Alexa AI CodeArtifact registry, using an AWS account you have given to an Alexa Solutions Architect. So the CLI is partner gated. The problem is that you only discover this after the install command has already failed.
 
-## F-003 — Client lifecycle example uses an older protocol version than the required spec
+What I did instead: I built against the MCP specification directly, 2025-11-25 over Streamable HTTP with the MCP Apps extension, so the server works in any compliant host, and I wrote my own Alexa+ simulator to demonstrate it.
 
-- **Date:** 2026-09-16
-- **Tool:** Alexa+ MCP Toolkit — Client Lifecycle docs
-- **Task:** Confirm which MCP protocol version the Alexa+ client negotiates.
-- **Steps:** Compared QuickStart ("MCP specification 2025-11-25", Streamable HTTP) with the Client Lifecycle page's `initialize` example.
-- **Expected:** `protocolVersion: "2025-11-25"` in the example.
-- **Actual:** Example shows `"2025-03-26"`.
-- **Severity:** Low
-- **Workaround:** Server negotiates any supported version via the SDK; verify against the real client once deployed.
-- **Suggestion:** Update the example, or document the version-negotiation behavior explicitly.
+What would have helped: put the CodeArtifact and Solutions Architect prerequisite above the install command rather than below it, give individual developers a way to request access themselves, and publish the local inspector publicly so people outside the partner programme can at least check their server against the Alexa+ rules.
+
+## F-002. The documentation gives three different answers about who can use the toolkit
+
+Date: 16 September 2026
+
+Tool: Alexa+ MCP Toolkit documentation
+
+What I was doing: working out whether an individual developer outside the United States could use the toolkit at all, before investing time in it.
+
+Steps: I read the Alexa+ for Builders landing page, the MCP Toolkit Overview, and the development environment setup page.
+
+Expected: one clear statement about who is eligible.
+
+What happened: the landing page says it is currently available to select partners working directly with the team. The overview says it is available in the United States. The setup page asks only for a free developer account, then mentions handing credentials to an Alexa Solutions Architect. Three pages, three different pictures, and no way to tell which applies to me.
+
+Severity: Medium.
+
+What I did instead: I assumed the most restrictive reading was true and designed so that nothing depended on getting access.
+
+What would have helped: a short eligibility box at the top of the Overview and the QuickStart saying who can use it, in which countries, and how to ask for access.
+
+## F-003. The client lifecycle example uses an older protocol version than the one the toolkit requires
+
+Date: 16 September 2026
+
+Tool: Alexa+ MCP Toolkit, Client Lifecycle documentation
+
+What I was doing: checking which MCP protocol version the Alexa+ client negotiates, so my server would accept it.
+
+Steps: I compared the QuickStart, which requires MCP specification 2025-11-25 over Streamable HTTP, with the initialize example on the Client Lifecycle page.
+
+Expected: the example to show the same version the QuickStart requires.
+
+What happened: the example shows protocol version 2025-03-26 instead.
+
+Severity: Low. The SDK negotiates versions anyway, so nothing broke. It just made me doubt which version to target.
+
+What I did instead: I let the SDK handle negotiation and moved on.
+
+What would have helped: updating the example, or a sentence explaining that the client negotiates and which versions it accepts.
+
+## F-004. Anthropic models on Bedrock were unusable on a new account for three weeks, with no way to fix it
+
+Date: 18 September to 12 October 2026, never resolved
+
+Tool: Amazon Bedrock model access
+
+What I was doing: calling Claude from a new personal AWS account, to use Bedrock for the AWS Builder mini challenge.
+
+Steps: I created an IAM user with the AmazonBedrockLimitedAccess policy. The console's Model access page is now retired, and the page that replaced it says serverless models are enabled automatically across all commercial regions the first time you invoke them. So I invoked one, from the Playground and from the CLI. I also submitted the Anthropic use case form. I retried over several days, in both ap-southeast-1 and us-west-2.
+
+Expected: the first invocation enables the model, as the retirement notice describes.
+
+What happened: every single call returned AccessDeniedException saying the model is not available for this account and that I should contact AWS Sales. The diagnostics made clear the account itself was fine and only one thing was missing. Running aws bedrock get-foundation-model-availability showed agreementAvailability NOT_AVAILABLE while authorizationStatus was AUTHORIZED, entitlementAvailability was AVAILABLE and regionAvailability was AVAILABLE. Running aws bedrock get-use-case-for-model-access confirmed my form had been accepted. Running aws bedrock list-foundation-model-agreement-offers returned a real pending offer that nothing in the console ever showed me. Amazon Nova models on the same account, same credentials, same region reported agreementAvailability AVAILABLE and worked immediately, so this is specific to the Anthropic listing and not to my account.
+
+Severity: Blocker for what I originally planned, and the single biggest time loss in the project.
+
+What I did instead: I rewrote the agent to use the Bedrock Converse API rather than an Anthropic specific SDK, and switched to Amazon Nova Pro, which worked on the first try. That turned out to be a better design anyway, because the model is now a single environment variable.
+
+What would have helped, in order of how much difference it would make:
+
+1. An error message that names the real cause. Saying there is no Marketplace agreement for this model, with a link to accept it, would have saved three weeks. Contact AWS Sales reads as though the account is too small, which sends you looking in completely the wrong place.
+2. Somewhere in the console to accept a pending agreement offer. Now that Model access is retired, the offer that list-foundation-model-agreement-offers returns is reachable only from the CLI, and nothing tells you it exists.
+3. A line on the retirement page saying the automatic enabling does not cover Anthropic models on new accounts, and explaining what does.
+
+## F-005. Nova returns an empty response when a tool result mixes text with a large JSON block
+
+Date: 12 October 2026
+
+Tool: Amazon Bedrock Converse API with Amazon Nova Pro
+
+What I was doing: sending an MCP tool result back to the model as both a spoken summary and the structured data behind it, using a toolResult with a text block and a json block, which is the shape the Converse API documents.
+
+Steps: the agent calls the get_expiring tool, posts the result back as a text block plus a json block holding the structured payload, which was an object containing an array of 16 items, then calls Converse again.
+
+Expected: a spoken summary that refers to the structured data.
+
+What happened: the model returned stopReason end_turn with an empty content array. No error, no warning, no explanation. The same conversation with a short text only tool result answers perfectly, so the trigger is the mixed content, or its size, rather than anything about the conversation. This was the hardest problem in the project to diagnose, because an empty successful response looks exactly like a prompting mistake. I spent a while rewriting prompts before suspecting the API.
+
+Severity: High, because it is silent and because the obvious reading of the documentation leads straight into it.
+
+What I did instead: I send one text block per tool result with the JSON written into the text, capped at 6000 characters.
+
+What would have helped: either reject the request with a validation error naming the block that caused it, or document the size and shape limits for json blocks in tool results. Returning a successful but empty turn with no diagnostic is the least helpful of the three possibilities.

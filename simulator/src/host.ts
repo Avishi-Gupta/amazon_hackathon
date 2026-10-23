@@ -207,15 +207,16 @@ function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
 }
 
 function speak(text: string) {
-  if (!("speechSynthesis" in window) || !text) return setState("idle");
+  const settle = () => setState("idle");
+  if (!("speechSynthesis" in window) || !text) return settle();
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = detectLang(text);
   const voice = pickVoice(utterance.lang);
   if (voice) utterance.voice = voice;
   utterance.rate = 1.03; // a touch quicker than default reads as more natural
-  utterance.onend = () => setState("idle");
-  utterance.onerror = () => setState("idle");
+  utterance.onend = settle;
+  utterance.onerror = settle;
   setState("speaking");
   speechSynthesis.speak(utterance);
 }
@@ -324,44 +325,50 @@ document.querySelectorAll<HTMLButtonElement>(".chip").forEach((chip) =>
 // --- Voice input (Web Speech API; Chrome and Edge) ------------------------------------------
 
 interface RecognitionResultEvent {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+  resultIndex: number;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
 }
 interface Recognition {
   lang: string;
+  continuous: boolean;
   interimResults: boolean;
   onresult: ((event: RecognitionResultEvent) => void) | null;
   onend: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   start(): void;
+  stop(): void;
 }
 const speechWindow = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
 const RecognitionCtor = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
 if (!RecognitionCtor) {
   micBtn.disabled = true;
-  micBtn.title = "Voice input needs Chrome or Edge. Type instead.";
+  micBtn.title = "Voice input needs Chrome or Edge on a secure page. Type instead.";
 } else {
   micBtn.addEventListener("click", () => {
     speechSynthesis.cancel();
-    const recognition = new RecognitionCtor();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
+    const session = new RecognitionCtor();
+    session.lang = "en-US";
+    session.continuous = false;
+    session.interimResults = false;
     let heard = false;
-    recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript;
+    session.onresult = (event) => {
+      const transcript = event.results[event.results.length - 1]?.[0]?.transcript?.trim();
       if (transcript) {
         heard = true;
         void ask(transcript);
       }
     };
-    recognition.onerror = (event) => {
-      statusEl.textContent = `Microphone: ${event.error}`;
+    session.onerror = (event) => {
+      if (event.error !== "no-speech" && event.error !== "aborted") {
+        statusEl.textContent = `Microphone: ${event.error}`;
+      }
     };
-    recognition.onend = () => {
+    session.onend = () => {
       if (!heard && lightBar.dataset.state === "listening") setState("idle");
     };
     setState("listening");
-    recognition.start();
+    session.start();
   });
 }
 
