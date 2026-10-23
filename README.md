@@ -156,10 +156,10 @@ src/simulator/server.ts ── HomeStockAgent ────┘
 HomeStock MCP server (npm start)
 ```
 
-- **Agent** — `src/agent/agent.ts` fetches HomeStock's tools over MCP, lets the model choose and chain them, and returns the spoken reply plus every tool call made. The model is one environment variable; nothing in the code is Nova-specific.
-- **Voice** — the microphone button uses the Web Speech API for recognition (the browser's speech service processes the audio); replies are spoken with `speechSynthesis`, which picks the best installed voice for the reply's language.
-- **Camera** — the 📷 button posts a photo to `/api/photo`, which passes it to the model's vision input and lets it call `add_items` with whatever it reads.
-- **Screen** — the most recent UI-linked tool result is rendered as the add-on's MCP App inside a double-sandboxed iframe, matching the MCP Apps security model. Taps on the board flow back into the conversation through `updateModelContext`, so a follow-up question knows what was just pressed.
+- **Agent**: `src/agent/agent.ts` fetches HomeStock's tools over MCP, lets the model choose and chain them, and returns the spoken reply plus every tool call made. The model is one environment variable; nothing in the code is Nova-specific.
+- **Voice**: the microphone button uses the Web Speech API for recognition (the browser's speech service processes the audio); replies are spoken with `speechSynthesis`, which picks the best installed voice for the reply's language.
+- **Camera**: the 📷 button posts a photo to `/api/photo`, which passes it to the model's vision input and lets it call `add_items` with whatever it reads.
+- **Screen**: the most recent UI-linked tool result is rendered as the add-on's MCP App inside a double-sandboxed iframe, matching the MCP Apps security model. Taps on the board flow back into the conversation through `updateModelContext`, so a follow-up question knows what was just pressed.
 
 ## Troubleshooting
 
@@ -187,9 +187,9 @@ scripts/        MCP conformance smoke test
 
 ## Not implemented
 
-- **OAuth 2.1** — required by Alexa+ for certification. The server is unauthenticated.
-- **Tested against production Alexa+** — toolkit access is partner-gated, hence the simulator.
-- **Hosted deployment** — runs locally. The MCP server is a stateless Node process and containerises easily, but state lives in a SQLite file on local disk, so an ephemeral host needs persistent storage or a different `InventoryStore` backend.
+- **OAuth 2.1**: required by Alexa+ for certification. The server is unauthenticated.
+- **Tested against production Alexa+**: toolkit access is partner-gated, hence the simulator.
+- **Hosted deployment**: runs locally. The MCP server is a stateless Node process and containerises easily, but state lives in a SQLite file on local disk, so an ephemeral host needs persistent storage or a different `InventoryStore` backend.
 
 ## Friction log
 
