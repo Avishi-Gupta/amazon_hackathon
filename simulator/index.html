@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>HomeStock · Alexa+ Simulator</title>
+</head>
+<body>
+  <main class="stage">
+    <div class="device" aria-label="Simulated Echo Show">
+      <section id="screen" class="screen">
+        <div id="idle" class="idle">
+          <p id="clock" class="clock"></p>
+          <p class="hint">Try saying…</p>
+          <div class="chips">
+            <button class="chip" data-say="What should I use up?">“What should I use up?”</button>
+            <button class="chip" data-say="What's running low this week?">“What's running low?”</button>
+            <button class="chip" data-say="I just bought a dozen eggs, two cartons of milk and some spinach">“I bought eggs, milk and spinach”</button>
+            <button class="chip" data-say="Show me my shopping list">“Show my shopping list”</button>
+          </div>
+        </div>
+      </section>
+      <div id="light-bar" class="light-bar" data-state="idle" aria-hidden="true"></div>
+    </div>
+
+    <aside class="assistant" aria-label="Conversation">
+      <header>
+        <h1>HomeStock</h1>
+        <p class="subtitle">Alexa+ add-on simulator · MCP 2025-11-25</p>
+      </header>
+      <ol id="transcript" class="transcript" aria-live="polite"></ol>
+      <form id="ask" class="ask">
+        <button id="mic" class="mic" type="button" aria-label="Speak">🎙️</button>
+        <button id="camera" class="mic" type="button" aria-label="Scan a receipt or your groceries">📷</button>
+        <input id="photo-input" type="file" accept="image/*" hidden>
+        <input id="utterance" autocomplete="off" placeholder="Type what you'd say to Alexa…" aria-label="Utterance">
+        <button type="submit">Send</button>
+      </form>
+      <p id="status" class="status" role="status"></p>
+    </aside>
+  </main>
+  <script type="module" src="./src/host.ts"></script>
+</body>
+</html>

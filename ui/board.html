@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>HomeStock</title>
+</head>
+<body>
+  <main class="board">
+    <nav class="tabs" aria-label="Views">
+      <button class="tab" data-tool="get_expiring" data-view="expiring">Use soon</button>
+      <button class="tab" data-tool="get_restock_forecast" data-view="restock">Running low</button>
+      <button class="tab" data-tool="get_shopping_list" data-view="shopping">Shopping list</button>
+      <button class="tab" data-tool="get_inventory" data-view="inventory">Everything</button>
+    </nav>
+    <section id="content" class="content" aria-live="polite">
+      <p class="empty">Loading…</p>
+    </section>
+    <p id="toast" class="toast" role="status" hidden></p>
+  </main>
+  <script type="module" src="./board.ts"></script>
+</body>
+</html>

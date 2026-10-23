@@ -1,0 +1,254 @@
+/* Echo Show-first: legible across the room, touch targets of at least 64px, dark by default. */
+:root {
+  --bg: #0e1620;
+  --surface: #172230;
+  --surface-2: #213042;
+  --text: #f2f5f8;
+  --muted: #9fb0c2;
+  --accent: #34d3b4;
+  --accent-ink: #062a23;
+  --ok: #7dd3a8;
+  --warn: #f6c35b;
+  --danger: #ff8a80;
+  --radius: 18px;
+  font-family: "Amazon Ember", "Helvetica Neue", system-ui, sans-serif;
+  font-size: clamp(16px, 1.6vw, 26px);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #e8edf3;
+  --text: #0e1620;
+  --muted: #53657a;
+  --accent: #0f8f78;
+  --accent-ink: #ffffff;
+  --ok: #1f7a4d;
+  --warn: #9a6400;
+  --danger: #b3261e;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  min-height: 100%;
+  /* The host sizes the frame; long lists scroll inside it rather than being clipped. */
+  overflow-y: auto;
+}
+
+/* Compact mode for short frames (small Echo Show, or a scaled-down preview). */
+@media (max-height: 560px) {
+  :root {
+    font-size: clamp(13px, 1.3vw, 18px);
+  }
+
+  .board {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  button {
+    min-height: 48px;
+  }
+
+  .tab {
+    min-height: 42px;
+  }
+
+  .card,
+  .row {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .icon {
+    font-size: 1.4rem;
+  }
+
+  h2 {
+    margin: 0.2rem 0;
+  }
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tab {
+  flex: 1 1 auto;
+  padding: 0 0.9rem;
+  min-height: 56px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 64px;
+  padding: 0 1.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button.secondary,
+.tab {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tab[aria-current="true"] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+h2 {
+  font-size: 1.4rem;
+  margin: 0.5rem 0;
+}
+
+h3 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.75rem;
+}
+
+.card,
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+.card .actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.card .actions button {
+  flex: 1;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.meta {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.qty {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.badge.ok {
+  color: var(--ok);
+}
+
+.badge.warn {
+  color: var(--warn);
+}
+
+.badge.danger {
+  color: var(--danger);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.row {
+  grid-template-columns: 1fr auto;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 1.2rem;
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  /* Top, not bottom: on a short Echo Show screen a bottom toast covers the card action buttons. */
+  top: 1rem;
+  transform: translateX(-50%);
+  max-width: min(90vw, 40rem);
+  margin: 0;
+  padding: 0.9rem 1.3rem;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.35);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toast button {
+  min-height: 44px;
+  padding: 0 1rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  white-space: nowrap;
+}

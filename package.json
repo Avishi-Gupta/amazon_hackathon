@@ -1,0 +1,46 @@
+{
+  "name": "homestock",
+  "version": "0.1.0",
+  "description": "HomeStock: an Alexa+ MCP add-on that tracks every consumable in your home — expiry, run-out, recipes, and reorders",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "concurrently -n ui,server \"vite build --watch --mode development\" \"tsx watch src/main.ts\"",
+    "build:ui": "vite build",
+    "seed": "tsx src/domain/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke.ts",
+    "build:simulator": "vite build -c vite.simulator.config.ts",
+    "build": "npm run build:ui && npm run build:simulator",
+    "simulator": "tsx src/simulator/server.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1149.0",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/express": "^2.0.0",
+    "@modelcontextprotocol/ext-apps": "^2.0.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
