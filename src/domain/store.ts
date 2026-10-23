@@ -68,7 +68,7 @@ export function nameKey(name: string): string {
 export function normalizeProductName(name: string): string {
   const cleaned = name
     .trim()
-    .replace(/\b\d+(\.\d+)?\s?(ml|l|g|kg|mg|oz|lb|ct|pk|pcs?|s)\b/gi, "") // 500ml, 830m, 30s, 2kg
+    .replace(/\b\d+(\.\d+)?\s?(ml|ltr?|l|gm?|kg|mg|oz|lb|ct|pk|pcs?|m|s)\b/gi, "") // 500ml, 830m, 30s, 2kg
     .replace(/\bx\s?\d+\b/gi, "") // x2
     .replace(/[^\p{L}\p{N}\s'&-]/gu, " ")
     .replace(/\s+/g, " ")
@@ -162,14 +162,28 @@ export class InventoryStore {
 
         const id = randomUUID();
         const key = nameKey(input.name);
-        insert.run(id, householdId, input.name, key, category, location, input.quantity, input.unit, addedOn, expiresOn, expiryEstimated ? 1 : 0);
+        // Buying the same thing again tops up the existing entry rather than creating a second row;
+        // only a different printed expiry date makes it a genuinely separate batch.
+        const existing = this.db
+          .prepare(
+            `SELECT id, quantity FROM items
+             WHERE household_id = ? AND name_key = ? AND unit = ? AND expires_on IS ? LIMIT 1`,
+          )
+          .get(householdId, key, input.unit, expiresOn);
+        if (existing) {
+          this.db
+            .prepare(`UPDATE items SET quantity = ?, added_on = ? WHERE id = ?`)
+            .run(round(Number(existing.quantity) + input.quantity), addedOn, String(existing.id));
+        } else {
+          insert.run(id, householdId, input.name, key, category, location, input.quantity, input.unit, addedOn, expiresOn, expiryEstimated ? 1 : 0);
+        }
         this.recordEvent(householdId, { name: input.name, category, kind: "added", quantity: input.quantity, onDate: addedOn });
 
         for (const entry of listMatches.all(householdId, key, key)) {
           deleteListEntry.run(String(entry.id));
           cleared.push(String(entry.name));
         }
-        added.push(this.toItem(this.db.prepare(`SELECT * FROM items WHERE id = ?`).get(id)!));
+        added.push(this.toItem(this.db.prepare(`SELECT * FROM items WHERE id = ?`).get(existing ? String(existing.id) : id)!));
       }
     });
     return { added, clearedFromShoppingList: cleared };
@@ -219,15 +233,24 @@ export class InventoryStore {
     if (!row) return null;
 
     const item = this.toItem(row);
-    const usedQuantity = outcome === "used" ? Math.min(amount ?? 1, item.quantity) : item.quantity;
-    const remainingQuantity = round(item.quantity - usedQuantity);
+    const itemKey = nameKey(item.name);
+    // "Finished" means none of this product is left anywhere, so every batch of it goes.
+    const batches =
+      outcome === "finished"
+        ? this.db.prepare(`SELECT id, quantity FROM items WHERE household_id = ? AND name_key = ?`).all(householdId, itemKey)
+        : [{ id: item.id, quantity: item.quantity }];
+    const stockOfProduct = round(batches.reduce((sum, b) => sum + Number(b.quantity), 0));
+
+    const usedQuantity = outcome === "used" ? Math.min(amount ?? 1, item.quantity) : stockOfProduct;
+    const remainingQuantity = outcome === "used" ? round(item.quantity - usedQuantity) : 0;
     const kind = outcome === "discarded" ? "discarded" : remainingQuantity <= 0 ? "finished" : "used";
 
     this.transaction(() => {
-      if (remainingQuantity <= 0 || kind === "discarded") {
-        this.db.prepare(`DELETE FROM items WHERE id = ?`).run(item.id);
-      } else {
+      if (outcome === "used" && remainingQuantity > 0) {
         this.db.prepare(`UPDATE items SET quantity = ? WHERE id = ?`).run(remainingQuantity, item.id);
+      } else {
+        const remove = this.db.prepare(`DELETE FROM items WHERE id = ?`);
+        for (const batch of batches) remove.run(String(batch.id));
       }
       this.recordEvent(householdId, { name: item.name, category: item.category, kind, quantity: usedQuantity, onDate: today() });
     });

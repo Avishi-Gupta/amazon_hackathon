@@ -16,6 +16,7 @@ HomeStock is a self-hosted [Model Context Protocol](https://modelcontextprotocol
 | **Run-out prediction** | Learns each product's purchase cadence and predicts when staples run out — before anyone notices. |
 | **Consumption & waste log** | "We finished the milk" / "I threw out the spinach" — FIFO against the soonest-expiring stock. Running out either way offers the item for the shopping list, by voice or a one-tap button on the board. |
 | **Shopping list** | Suggests restocks, never adds without consent, and auto-crosses items off when they're bought. |
+| **Meal suggestions** | "What can I cook with what's expiring?" answers from real stock, built around the items closest to spoiling, and never invents an ingredient the inventory doesn't hold. |
 | **Photo intake** | A photo of a receipt or the groceries on the counter is read by Amazon Nova, which expands receipt shorthand ("ORG BAN" → bananas, "SKIM MLK 1L x2" → 2 milk) and files everything with inferred shelf lives. |
 | **Multilingual** | Questions in English, Mandarin, Malay or Hindi are answered in the same language, while product names are stored in English so one household's inventory stays consistent across languages. |
 | **Echo Show board (MCP App)** | Large, touch-first views for *Use soon*, *Running low*, *Shopping list* and *Everything*. Taps call tools and keep the assistant's context in sync. |
