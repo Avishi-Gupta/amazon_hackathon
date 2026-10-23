@@ -1,6 +1,7 @@
 // Serves the Echo Show simulator: the host page + agent API on one origin, and the MCP Apps
 // sandbox proxy on a second origin so add-on UIs stay isolated from the host page.
 import express, { type Request, type Response } from "express";
+import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { z } from "zod";
 import { HomeStockAgent } from "../agent/agent.js";
@@ -8,10 +9,23 @@ import type { SimulatorConfig } from "../agent/types.js";
 
 const MAX_IMAGE_BASE64 = 8_000_000; // ~6 MB of image data
 
-const HOST = "127.0.0.1";
+// Bind address. Set SIMULATOR_HOST=0.0.0.0 to reach the simulator from another device on the LAN.
+const HOST = process.env.SIMULATOR_HOST ?? "127.0.0.1";
 const port = Number(process.env.SIMULATOR_PORT ?? 8080);
 const sandboxPort = Number(process.env.SANDBOX_PORT ?? 8081);
-const mcpUrl = process.env.MCP_URL ?? "http://127.0.0.1:3001/mcp";
+// The hostname other devices use to reach this machine. When bound to all interfaces, the LAN
+// address is detected so the sandbox origin and MCP endpoint resolve from a phone, not just here.
+const publicHost = process.env.PUBLIC_HOST ?? (HOST === "0.0.0.0" ? lanAddress() : HOST);
+const mcpUrl = process.env.MCP_URL ?? `http://${publicHost}:3001/mcp`;
+
+function lanAddress(): string {
+  for (const addresses of Object.values(networkInterfaces())) {
+    for (const address of addresses ?? []) {
+      if (address.family === "IPv4" && !address.internal) return address.address;
+    }
+  }
+  return "127.0.0.1";
+}
 const DIST = path.resolve(import.meta.dirname, "../../dist/simulator");
 
 const agent = new HomeStockAgent({
@@ -39,7 +53,7 @@ const app = express();
 app.use(express.json({ limit: "12mb" }));
 
 app.get("/api/config", (_req: Request, res: Response) => {
-  const config: SimulatorConfig = { mcpUrl, sandboxUrl: `http://${HOST}:${sandboxPort}/sandbox.html` };
+  const config: SimulatorConfig = { mcpUrl, sandboxUrl: `http://${publicHost}:${sandboxPort}/sandbox.html` };
   res.json(config);
 });
 
@@ -78,14 +92,14 @@ sandbox.use((_req, res, next) => {
   // The view HTML is written into the inner frame, so it inherits this policy: inline code only, no network.
   res.setHeader(
     "Content-Security-Policy",
-    `default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'none'; frame-ancestors http://${HOST}:${port} http://localhost:${port}`,
+    `default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'none'; frame-ancestors http://${publicHost}:${port} http://127.0.0.1:${port} http://localhost:${port}`,
   );
   next();
 });
 sandbox.use(express.static(DIST));
 
-app.listen(port, HOST, () => console.log(`Simulator:        http://${HOST}:${port}  (MCP server: ${mcpUrl})`));
-sandbox.listen(sandboxPort, HOST, () => console.log(`Sandbox origin:   http://${HOST}:${sandboxPort}`));
+app.listen(port, HOST, () => console.log(`Simulator:        http://${publicHost}:${port}  (MCP server: ${mcpUrl})`));
+sandbox.listen(sandboxPort, HOST, () => console.log(`Sandbox origin:   http://${publicHost}:${sandboxPort}`));
 
 function describeError(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);

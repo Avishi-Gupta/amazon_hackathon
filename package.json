@@ -12,7 +12,8 @@
     "smoke": "tsx scripts/smoke.ts",
     "build:simulator": "vite build -c vite.simulator.config.ts",
     "build": "npm run build:ui && npm run build:simulator",
-    "simulator": "tsx src/simulator/server.ts"
+    "simulator": "tsx src/simulator/server.ts",
+    "phone": "cross-env SIMULATOR_HOST=0.0.0.0 tsx src/simulator/server.ts"
   },
   "keywords": [],
   "author": "",

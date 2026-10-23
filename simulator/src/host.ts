@@ -65,10 +65,21 @@ function addTurn(role: "you" | "alexa", text: string, toolNames: string[] = [], 
 
 // --- MCP connection -------------------------------------------------------------------------
 
+const connectionEl = document.getElementById("connection")!;
+
 const config = (await (await fetch("/api/config")).json()) as SimulatorConfig;
 const mcp = new Client(HOST_INFO);
-await mcp.connect(new StreamableHTTPClientTransport(new URL(config.mcpUrl)));
-const tools = new Map<string, Tool>((await mcp.listTools()).tools.map((t) => [t.name, t]));
+let tools: Map<string, Tool>;
+try {
+  await mcp.connect(new StreamableHTTPClientTransport(new URL(config.mcpUrl)));
+  tools = new Map((await mcp.listTools()).tools.map((t) => [t.name, t]));
+  connectionEl.dataset.state = "ready";
+  connectionEl.textContent = `HomeStock add-on · ${tools.size} tools`;
+} catch (err) {
+  connectionEl.dataset.state = "error";
+  connectionEl.textContent = "Add-on offline — run npm start";
+  throw err;
+}
 const uiUriFor = (name: string) => {
   const tool = tools.get(name);
   return tool ? getToolUiResourceUri(tool) : undefined;
@@ -173,16 +184,45 @@ async function refreshScreen() {
 
 // --- Conversation ---------------------------------------------------------------------------
 
+/** Guesses a BCP-47 tag from the reply's script, so a Mandarin answer isn't read by an English voice. */
+function detectLang(text: string): string {
+  if (/[一-鿿]/.test(text)) return "zh-CN";
+  if (/[ऀ-ॿ]/.test(text)) return "hi-IN";
+  if (/[஀-௿]/.test(text)) return "ta-IN";
+  return "en-US";
+}
+
+/**
+ * Picks the best installed voice for a language. The platform default is usually a low-quality
+ * compact voice, while Chrome's networked "Google" voices and macOS Premium/Enhanced downloads
+ * sound far better, so prefer those when present.
+ */
+function pickVoice(lang: string): SpeechSynthesisVoice | undefined {
+  const base = lang.split("-")[0]!;
+  const candidates = speechSynthesis.getVoices().filter((v) => v.lang.replace("_", "-").startsWith(base));
+  if (!candidates.length) return undefined;
+  const rank = (v: SpeechSynthesisVoice) =>
+    /Google/i.test(v.name) ? 0 : /Premium|Enhanced|Neural|Natural/i.test(v.name) ? 1 : v.localService ? 2 : 3;
+  return [...candidates].sort((a, b) => rank(a) - rank(b) || Number(b.default) - Number(a.default))[0];
+}
+
 function speak(text: string) {
   if (!("speechSynthesis" in window) || !text) return setState("idle");
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
+  utterance.lang = detectLang(text);
+  const voice = pickVoice(utterance.lang);
+  if (voice) utterance.voice = voice;
+  utterance.rate = 1.03; // a touch quicker than default reads as more natural
   utterance.onend = () => setState("idle");
   utterance.onerror = () => setState("idle");
   setState("speaking");
   speechSynthesis.speak(utterance);
 }
+
+// Voice lists load asynchronously in Chrome; touching it early primes the list before the first reply.
+speechSynthesis?.getVoices();
+speechSynthesis?.addEventListener?.("voiceschanged", () => speechSynthesis.getVoices());
 
 async function ask(text: string) {
   addTurn("you", text);

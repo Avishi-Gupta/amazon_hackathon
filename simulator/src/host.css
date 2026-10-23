@@ -22,13 +22,87 @@ body {
   color: var(--text);
 }
 
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.75rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+  background: rgb(8 12 18 / 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.mark {
+  flex: none;
+  width: 2.3rem;
+  height: 2.3rem;
+  color: var(--cyan);
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: 46ch;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-pill::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill[data-state="ready"] {
+  color: #6ee7b7;
+}
+
+.status-pill[data-state="error"] {
+  color: #ff8a80;
+}
+
 .stage {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
   gap: 1.5rem;
   padding: 1.5rem;
-  min-height: 100vh;
+  min-height: calc(100vh - 5.5rem);
   align-items: center;
+}
+
+/* Grid items default to a min-content floor; without this the conversation panel's
+   input-plus-buttons row widens the whole page and pushes the device off-screen. */
+.stage > * {
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
@@ -41,7 +115,7 @@ body {
 /* Echo Show-style device: 16:10 screen in a thick bezel with a light bar underneath. */
 .device {
   position: relative;
-  padding: 1.1rem 1.1rem 1.6rem;
+  padding: 1.1rem 1.1rem 2rem;
   border-radius: 28px;
   background: var(--bezel);
   box-shadow: 0 30px 80px rgb(0 0 0 / 0.55), inset 0 0 0 1px #262b31;
@@ -49,6 +123,7 @@ body {
 
 .screen {
   position: relative;
+  container-type: inline-size;
   aspect-ratio: 16 / 10;
   width: 100%;
   border-radius: 14px;
@@ -71,14 +146,16 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
+  gap: 0.6rem;
+  padding: clamp(0.75rem, 3%, 2rem);
+  overflow: auto;
   background: linear-gradient(160deg, #10263a, #0b1520 60%);
 }
 
 .clock {
   margin: 0;
-  font-size: clamp(3rem, 9vw, 7rem);
+  /* Scales with the device, not the window, so a small frame keeps the chips visible. */
+  font-size: clamp(1.75rem, 7cqw, 7rem);
   font-weight: 300;
   letter-spacing: -0.02em;
 }
@@ -104,8 +181,13 @@ button {
 }
 
 .chip {
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 0.9rem;
+  font-size: clamp(0.75rem, 2.6cqw, 1rem);
   background: rgb(255 255 255 / 0.08);
+  /* Buttons default to nowrap; long example phrases must wrap instead of overflowing the screen. */
+  white-space: normal;
+  max-width: 100%;
+  line-height: 1.3;
 }
 
 .chip:hover {
@@ -170,15 +252,31 @@ button {
   box-shadow: inset 0 0 0 1px #1f2b38;
 }
 
-.assistant h1 {
+.device-caption {
+  /* Clears the light bar, which is absolutely positioned over the bezel's lower padding. */
+  margin: 1.5rem 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panel-head {
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.07);
+}
+
+.assistant h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
 }
 
 .subtitle {
   margin: 0.2rem 0 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
 .transcript {

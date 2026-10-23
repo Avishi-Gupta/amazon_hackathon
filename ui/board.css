@@ -245,6 +245,11 @@ h3 {
   gap: 0.75rem;
 }
 
+/* `display: flex` above would otherwise beat the UA rule for [hidden], leaving an empty pill on screen. */
+.toast[hidden] {
+  display: none;
+}
+
 .toast button {
   min-height: 44px;
   padding: 0 1rem;
